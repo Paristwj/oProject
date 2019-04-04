@@ -1,3 +1,3 @@
 # oProject
-Code Style
-# Code snippet from my projects.
+Code Style <br/>
+Code snippet from my projects.
