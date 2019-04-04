@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE ViewObject SYSTEM "jbo_03_01.dtd">
+<!---->
+<ViewObject xmlns="http://xmlns.oracle.com/bc4j"
+  Name="ChecklistSearchVO" Version="11.1.1.72.70"
+  CustomQuery="true" AccessMode="DEFAULT">
+  <Variable Name="pInstanceId" Type="java.lang.String"/>
+  <Variable Name="pLDGId" Kind="where" Type="java.lang.Long"/>
+  <Variable Name="pLC" Kind="where" Type="java.lang.String"/>
+  <!--
+    VO Query: get task details by flow instance id.
+    Input parameters: flow instance id, ldg, lc. 
+    WCEO: preprocess to get row level root category type.
+  -->
+<SQLQuery>
+    <![CDATA[SELECT CIEO.CHECKLIST_INSTANCE_ID,
+	  CIEO.OWNER_ID,
+	  WCEO.CHECKLIST_NAME,
+	  WCEO.ROOT_CAT_TYPE,
+	  WCEO.CATEGORY_TYPE,
+	  WCEO.CHECKLIST_ID,
+	  TEO.TASK_TYPE,
+	  FIEO.CREATION_DATE,
+	  TO_CHAR(FIEO.CREATION_DATE, 'mm/dd/yyyy') AS CREATIONDATESTRING,
+	  FIEO.CREATED_BY,
+	  FTIEO.STATUS,
+	  (SELECT MEANING FROM H_LOOKUPS WHERE lookup_type = 'UI_STATUS' AND Lookup_Code = FTIEO.UI_TASK_STATUS) AS MEANING,
+	  (SELECT MEANING FROM H_LOOKUPS WHERE lookup_type = 'TASK_TYPE' AND Lookup_Code = TEO.TASK_TYPE) AS MEANING1,
+	  (SELECT MEANING FROM H_LOOKUPS WHERE lookup_type = 'TASK_CATEGORY' AND Lookup_Code = WCEO.ROOT_CAT_TYPE) AS MEANING2
+	FROM
+	  (SELECT NVL(Category_Type,
+		(SELECT CEO.Category_Type
+		FROM PAYC_VL CEO
+		WHERE CEO.Parent_Checklist_Id IS NULL
+		  START WITH CEO.Checklist_Id = CEO1.Checklist_Id
+		  CONNECT BY checklist_id = prior Parent_Checklist_Id
+		)) AS ROOT_CAT_TYPE, CEO1.* --to be improve, replace '*'.
+	  FROM PAYC_VL CEO1
+	  WHERE base_flow_id = 3001
+	  ) WCEO,
+	  PAYC_INS CIEO,
+	  PAY_FT_INS FTIEO,
+	  PAYFT_VL FlowTEO,
+	  PAYT_VL TEO,
+	  PAYF_INS FIEO
+	WHERE WCEO.BCHECKLIST_ID   = CIEO.BCHECKLIST_ID
+	AND CIEO.FT_INSTANCE_ID = FTIEO.FT_INSTANCE_ID
+	AND WCEO.BFT_ID     = FlowTEO.BFT_ID
+	AND FlowTEO.BT_ID       = TEO.BT_ID
+	AND CIEO.Flow_Ins_Id      = FIEO.Flow_Ins_Id
+	AND (((WCEO.ldg               IS NOT NULL --L_L case1
+	AND WCEO.lc                   IS NULL
+	AND WCEO.ldg                   = 30012462 ))
+	OR ((WCEO.lc                  IS NOT NULL --L_L case2
+	AND WCEO.ldg                  IS NULL
+	AND WCEO.lc                    = 'CT'
+	AND NOT EXISTS
+	  (SELECT CHECKLIST_ID
+	  FROM PAYC_VL c1
+	  WHERE WCEO.BCHECKLIST_ID = c1.BCHECKLIST_ID
+	  AND (c1.ldg                 IS NOT NULL
+	  AND c1.lc                   IS NULL
+	  AND c1.ldg                   = 30012462 ))))
+	OR ((WCEO.ldg IS NULL                     --L_L case3
+	AND WCEO.lc   IS NULL
+	AND NOT EXISTS
+	  (SELECT CHECKLIST_ID
+	  FROM PAYC_VL c2
+	  WHERE WCEO.BCHECKLIST_ID = c2.BCHECKLIST_ID
+	  AND ((c2.ldg                IS NOT NULL
+	  AND c2.lc                   IS NULL
+	  AND c2.ldg                   = 30012462)
+	  OR (c2.lc                   IS NOT NULL
+	  AND c2.ldg                  IS NULL
+	  AND c2.lc                    = 'CT' ))))))
+	AND ('ALL' = 'ALL' OR WCEO.ROOT_CAT_TYPE     = 'ALL')
+	AND ('ALL' = 'ALL' OR FTIEO.UI_TASK_STATUS   = 'ALL')
+	AND FIEO.Flow_Ins_Id = 3001]]>
+  </SQLQuery>
+</ViewObject>
