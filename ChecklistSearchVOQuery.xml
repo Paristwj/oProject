@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE ViewObject SYSTEM "jbo_03_01.dtd">
-<!---->
+<!--
+    VO Query: get task details by flow instance id.
+    Input parameters: flow instance id, ldg, lc. 
+    WCEO: preprocess to get row level root category type.
+-->
 <ViewObject xmlns="http://xmlns.oracle.com/bc4j"
   Name="ChecklistSearchVO" Version="11.1.1.72.70"
   CustomQuery="true" AccessMode="DEFAULT">
   <Variable Name="pInstanceId" Type="java.lang.String"/>
   <Variable Name="pLDGId" Kind="where" Type="java.lang.Long"/>
   <Variable Name="pLC" Kind="where" Type="java.lang.String"/>
-  <!--
-    VO Query: get task details by flow instance id.
-    Input parameters: flow instance id, ldg, lc. 
-    WCEO: preprocess to get row level root category type.
-  -->
-<SQLQuery>
+  <SQLQuery>
     <![CDATA[SELECT CIEO.CHECKLIST_INSTANCE_ID,
 	  CIEO.OWNER_ID,
 	  WCEO.CHECKLIST_NAME,
